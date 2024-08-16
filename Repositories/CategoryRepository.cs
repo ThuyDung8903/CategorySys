@@ -1,7 +1,6 @@
 ﻿using CategorySys.DTO;
 using CategorySys.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 
 namespace CategorySys.Repositories
@@ -9,44 +8,23 @@ namespace CategorySys.Repositories
     public class CategoryRepository : ICategoryRepository
     {
         private readonly AppDbContext _context;
-        private readonly IMemoryCache _memoryCache;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private const string _cacheKey = "Categories";
 
-        public CategoryRepository(AppDbContext context, IMemoryCache memoryCache, IHttpContextAccessor httpContextAccessor)
+        public CategoryRepository(AppDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
-            _memoryCache = memoryCache;
             _httpContextAccessor = httpContextAccessor;
         }
 
         public IEnumerable<Category> GetAllCategories()
         {
-            if (!_memoryCache.TryGetValue(_cacheKey, out List<Category> categories))
-            {
-                categories = _context.Categories
-                    .Include(c => c.CreatedByUser)
-                    .Include(c => c.UpdatedByUser)
-                    .Include(c => c.ChildCategories)
-                    .ToList();
-
-                var cacheEntryOptions = new MemoryCacheEntryOptions()
-                    .SetSlidingExpiration(TimeSpan.FromMinutes(60));
-
-                _memoryCache.Set(_cacheKey, categories, cacheEntryOptions);
-            }
+            var categories = _context.Categories
+                 .Include(c => c.CreatedByUser)
+                 .Include(c => c.UpdatedByUser)
+                 .Include(c => c.ChildCategories)
+                 .ToList();
 
             return categories;
-        }
-
-        public List<Category> GetCache()
-        {
-            if (_memoryCache.TryGetValue(_cacheKey, out List<Category> cachedCategories))
-            {
-                return cachedCategories;
-            }
-
-            return null;
         }
 
         public void Add(CategoryDTO categoryDTO)
@@ -72,7 +50,6 @@ namespace CategorySys.Repositories
 
                 _context.Categories.Add(category);
                 _context.SaveChanges();
-                UpdateCache();
             }
             catch (Exception ex)
             {
@@ -99,7 +76,6 @@ namespace CategorySys.Repositories
 
                 _context.Categories.Update(category);
                 _context.SaveChanges();
-                UpdateCache();
             }
             catch (Exception ex)
             {
@@ -123,27 +99,12 @@ namespace CategorySys.Repositories
 
                     _context.Categories.Remove(category);
                     _context.SaveChanges();
-                    UpdateCache();
                 }
             }
             catch (Exception ex)
             {
                 throw new Exception(ex.Message);
             }
-        }
-
-        public void UpdateCache()
-        {
-            var categories = _context.Categories
-                .Include(c => c.CreatedByUser)
-                .Include(c => c.UpdatedByUser)
-                .Include(c => c.ChildCategories)
-                .ToList();
-
-            var cacheEntryOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(TimeSpan.FromMinutes(60));
-
-            _memoryCache.Set(_cacheKey, categories, cacheEntryOptions);
         }
     }
 }

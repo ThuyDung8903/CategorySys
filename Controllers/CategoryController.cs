@@ -1,5 +1,5 @@
 ﻿using CategorySys.DTO;
-using CategorySys.Repositories;
+using CategorySys.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,25 +9,27 @@ namespace CategorySys.Controllers
     [ApiController]
     public class CategoryController : ControllerBase
     {
-        private readonly ICategoryRepository _categoryRepository;
+        private readonly ICategoryService _categoryService;
 
-        public CategoryController(ICategoryRepository categoryRepository)
+        public CategoryController(ICategoryService categoryService)
         {
-            _categoryRepository = categoryRepository;
+            _categoryService = categoryService;
         }
 
         [Authorize]
         [HttpGet]
         public IActionResult Get()
         {
-            return Ok(_categoryRepository.GetAllCategories());
+            var categories = _categoryService.GetAllCategories();
+
+            return Ok(categories);
         }
 
         [Authorize]
         [HttpPost]
-        public IActionResult Post(CategoryDTO categoryDTO)
+        public IActionResult Add(CategoryDTO categoryDTO)
         {
-            _categoryRepository.Add(categoryDTO);
+            _categoryService.Add(categoryDTO);
 
             return Ok("Category added successfully");
         }
@@ -35,7 +37,7 @@ namespace CategorySys.Controllers
         [HttpGet("cache")]
         public IActionResult GetCache()
         {
-            var cachedCategories = _categoryRepository.GetCache();
+            var cachedCategories = _categoryService.GetCache();
             if (cachedCategories != null)
                 return Ok(cachedCategories);
 
@@ -44,9 +46,9 @@ namespace CategorySys.Controllers
 
         [Authorize]
         [HttpPut("{id}")]
-        public IActionResult Put(int id, CategoryDTO categoryDTO)
+        public IActionResult Update(int id, CategoryDTO categoryDTO)
         {
-            _categoryRepository.Update(id, categoryDTO);
+            _categoryService.Update(id, categoryDTO);
 
             return Ok("Category updated successfully");
         }
@@ -55,7 +57,7 @@ namespace CategorySys.Controllers
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            _categoryRepository.Delete(id);
+            _categoryService.Delete(id);
 
             return Ok("Category deleted successfully");
         }
